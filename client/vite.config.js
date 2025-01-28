@@ -20,6 +20,12 @@ export default defineConfig({
     sourcemap: true,
     commonjsOptions: {
       include: []
+    },
+    rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === 'CIRCULAR_DEPENDENCY') return;
+        warn(warning);
+      }
     }
   }
 })
