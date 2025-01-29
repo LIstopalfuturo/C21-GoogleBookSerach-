@@ -10,6 +10,10 @@ export default defineConfig({
       'react-dom': 'react-dom'
     }
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom', '@apollo/client', 'graphql'],
+    exclude: ['react-bootstrap']
+  },
   server: {
     port: 3000,
     open: true,
@@ -25,12 +29,16 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     commonjsOptions: {
-      include: []
+      include: [/node_modules/],
+      transformMixedEsModules: true
     },
     rollupOptions: {
-      onwarn(warning, warn) {
-        if (warning.code === 'CIRCULAR_DEPENDENCY') return;
-        warn(warning);
+      external: ['react', 'react-dom'],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM'
+        }
       }
     }
   }
