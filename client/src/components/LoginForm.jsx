@@ -1,26 +1,27 @@
 // see SignupForm.js for comments
-import React, { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
+
 import { useMutation } from '@apollo/client';
 import { LOGIN_USER } from '../utils/mutations';
+
 import Auth from '../utils/auth';
 
 const LoginForm = () => {
   const [userFormData, setUserFormData] = useState({ email: '', password: '' });
-  const [validated, setValidated] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [validated] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
 
-  const [login, { loading }] = useMutation(LOGIN_USER, {
-    onError: (error) => {
-      if (error.networkError) {
-        setErrorMessage('Network error. Please check your connection.');
-      } else {
-        setErrorMessage(error.message || 'Something went wrong with the login.');
-      }
-      setShowError(true);
+  const [login, { error }] = useMutation(LOGIN_USER);
+
+  useEffect(() => {
+    if (error) {
+      setShowAlert(true);
+    } else {
+      setShowAlert(false);
     }
-  });
+  }, [error]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -29,72 +30,77 @@ const LoginForm = () => {
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
+
     const form = event.currentTarget;
-    
     if (form.checkValidity() === false) {
+      event.preventDefault();
       event.stopPropagation();
-      setValidated(true);
-      return;
     }
 
     try {
       const { data } = await login({
-        variables: { ...userFormData }
+        variables: { ...userFormData },
       });
 
+      console.log(data);
       Auth.login(data.login.token);
-    } catch (err) {
-      // Error is handled by onError callback
+    } catch (e) {
+      console.error(e);
     }
+
+    // clear form values
+    setUserFormData({
+      email: '',
+      password: '',
+    });
   };
 
   return (
     <>
       <Form noValidate validated={validated} onSubmit={handleFormSubmit}>
-        <Alert 
-          dismissible 
-          onClose={() => setShowError(false)} 
-          show={showError} 
-          variant='danger'
+        <Alert
+          dismissible
+          onClose={() => setShowAlert(false)}
+          show={showAlert}
+          variant="danger"
         >
-          {errorMessage}
+          Something went wrong with your login credentials!
         </Alert>
-
         <Form.Group className='mb-3'>
-          <Form.Label htmlFor='email'>Email</Form.Label>
+          <Form.Label htmlFor="email">Email</Form.Label>
           <Form.Control
-            type='email'
-            placeholder='Your email'
-            name='email'
+            type="text"
+            placeholder="Your email"
+            name="email"
             onChange={handleInputChange}
             value={userFormData.email}
             required
           />
-          <Form.Control.Feedback type='invalid'>
+          <Form.Control.Feedback type="invalid">
             Email is required!
           </Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group className='mb-3'>
-          <Form.Label htmlFor='password'>Password</Form.Label>
+          <Form.Label htmlFor="password">Password</Form.Label>
           <Form.Control
-            type='password'
-            placeholder='Your password'
-            name='password'
+            type="password"
+            placeholder="Your password"
+            name="password"
             onChange={handleInputChange}
             value={userFormData.password}
             required
           />
-          <Form.Control.Feedback type='invalid'>
+          <Form.Control.Feedback type="invalid">
             Password is required!
           </Form.Control.Feedback>
         </Form.Group>
-        
         <Button
-          disabled={loading || !(userFormData.email && userFormData.password)}
-          type='submit'
-          variant='success'>
-          {loading ? 'Loading...' : 'Submit'}
+          disabled={!(userFormData.email && userFormData.password)}
+          type="submit"
+          variant="success"
+        >
+          Submit
         </Button>
       </Form>
     </>
