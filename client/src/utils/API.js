@@ -1,3 +1,6 @@
+// This file can be safely deleted as we're using GraphQL mutations and queries now
+// If you need to keep any utility functions, move them to a new utilities file
+
 // route to get logged in user's info (needs the token)
 export const getMe = (token) => {
   return fetch('/api/users/me', {

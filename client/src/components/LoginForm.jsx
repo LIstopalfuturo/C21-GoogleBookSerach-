@@ -1,17 +1,26 @@
 // see SignupForm.js for comments
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
-
-import { loginUser } from '../utils/API';
-import Auth from '../utils/auth';
+import { useMutation } from '@apollo/client';
 import { LOGIN_USER } from '../utils/mutations';
-import {useMutation} from '@apollo/client';
+import Auth from '../utils/auth';
 
 const LoginForm = () => {
-  const [login] = useMutation(LOGIN_USER);
   const [userFormData, setUserFormData] = useState({ email: '', password: '' });
-  const [validated] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
+  const [validated, setValidated] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const [login, { loading }] = useMutation(LOGIN_USER, {
+    onError: (error) => {
+      if (error.networkError) {
+        setErrorMessage('Network error. Please check your connection.');
+      } else {
+        setErrorMessage(error.message || 'Something went wrong with the login.');
+      }
+      setShowError(true);
+    }
+  });
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -20,12 +29,12 @@ const LoginForm = () => {
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
-
-    // check if form has everything (as per react-bootstrap docs)
     const form = event.currentTarget;
+    
     if (form.checkValidity() === false) {
-      event.preventDefault();
       event.stopPropagation();
+      setValidated(true);
+      return;
     }
 
     try {
@@ -33,39 +42,37 @@ const LoginForm = () => {
         variables: { ...userFormData }
       });
 
-      if (!data) {
-        throw new Error('something went wrong!');
-      }
-
       Auth.login(data.login.token);
     } catch (err) {
-      console.error(err);
-      setShowAlert(true);
+      // Error is handled by onError callback
     }
-
-    setUserFormData({
-      email: '',
-      password: '',
-    });
   };
 
   return (
     <>
       <Form noValidate validated={validated} onSubmit={handleFormSubmit}>
-        <Alert dismissible onClose={() => setShowAlert(false)} show={showAlert} variant='danger'>
-          Something went wrong with your login credentials!
+        <Alert 
+          dismissible 
+          onClose={() => setShowError(false)} 
+          show={showError} 
+          variant='danger'
+        >
+          {errorMessage}
         </Alert>
+
         <Form.Group className='mb-3'>
           <Form.Label htmlFor='email'>Email</Form.Label>
           <Form.Control
-            type='text'
+            type='email'
             placeholder='Your email'
             name='email'
             onChange={handleInputChange}
             value={userFormData.email}
             required
           />
-          <Form.Control.Feedback type='invalid'>Email is required!</Form.Control.Feedback>
+          <Form.Control.Feedback type='invalid'>
+            Email is required!
+          </Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group className='mb-3'>
@@ -78,13 +85,16 @@ const LoginForm = () => {
             value={userFormData.password}
             required
           />
-          <Form.Control.Feedback type='invalid'>Password is required!</Form.Control.Feedback>
+          <Form.Control.Feedback type='invalid'>
+            Password is required!
+          </Form.Control.Feedback>
         </Form.Group>
+        
         <Button
-          disabled={!(userFormData.email && userFormData.password)}
+          disabled={loading || !(userFormData.email && userFormData.password)}
           type='submit'
           variant='success'>
-          Submit
+          {loading ? 'Loading...' : 'Submit'}
         </Button>
       </Form>
     </>
